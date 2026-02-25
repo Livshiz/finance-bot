@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 import db
-from middleware import authorized
+from middleware import authorized, notify_others
 from reports import format_expense_feedback
 from services.ai_parser import parse_receipt_photo
 
@@ -46,3 +46,8 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     total = sum(item["amount"] for item in items)
     header = f"🧾 Распознано позиций: {len(items)}, итого: {total:.0f}₽\n"
     await update.message.reply_text(header + "\n".join(feedback_lines))
+    name = update.effective_user.first_name
+    await notify_others(
+        context.bot, user_id,
+        f"👤 {name} добавил(а) чек: {len(items)} поз., итого {total:.0f}₽"
+    )

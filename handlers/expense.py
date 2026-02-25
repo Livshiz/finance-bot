@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 import db
-from middleware import authorized
+from middleware import authorized, notify_others
 from reports import format_expense_feedback
 from services.ai_parser import parse_expense_text
 from services.whisper import transcribe_voice
@@ -40,6 +40,11 @@ async def handle_text_expense(update: Update, context: ContextTypes.DEFAULT_TYPE
     )
     feedback = format_expense_feedback(result["category"], result["amount"])
     await update.message.reply_text(feedback)
+    name = update.effective_user.first_name
+    await notify_others(
+        context.bot, user_id,
+        f"👤 {name}: {result['category']}, {result['amount']:.0f}₽ — {result['description']}"
+    )
 
 
 @authorized
@@ -76,3 +81,8 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     )
     feedback = format_expense_feedback(result["category"], result["amount"])
     await update.message.reply_text(feedback)
+    name = update.effective_user.first_name
+    await notify_others(
+        context.bot, user_id,
+        f"👤 {name} (голос): {result['category']}, {result['amount']:.0f}₽ — {result['description']}"
+    )
