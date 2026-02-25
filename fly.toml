@@ -1,0 +1,21 @@
+# fly.toml app configuration file generated for finance-bot-telegram on 2026-02-22T00:53:22+02:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'finance-bot-telegram'
+primary_region = 'ams'
+
+[build]
+
+[[mounts]]
+  source = "finance_data"
+  destination = "/app/data"
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
+  auto_stop_machines = false
+  auto_start_machines = false
