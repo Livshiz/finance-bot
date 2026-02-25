@@ -12,7 +12,7 @@ from telegram.ext import (
 )
 
 import db
-from config import ALLOWED_USER_IDS, TELEGRAM_BOT_TOKEN
+from config import ALLOWED_USER_IDS, ISRAEL_TZ, TELEGRAM_BOT_TOKEN
 from handlers.commands import budget, month, start, week
 from handlers.expense import handle_text_expense, handle_voice
 from handlers.photo import handle_photo
@@ -25,8 +25,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Moscow timezone (UTC+3)
-MSK = datetime.timezone(datetime.timedelta(hours=3))
+# Israel timezone (Asia/Jerusalem, handles DST automatically)
 
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -70,10 +69,10 @@ def main() -> None:
 
     app.add_error_handler(error_handler)
 
-    # Weekly report: Sunday at 19:00 Moscow time
+    # Weekly report: Sunday at 19:00 Israel time
     app.job_queue.run_daily(
         send_weekly_report,
-        time=datetime.time(hour=19, minute=0, tzinfo=MSK),
+        time=datetime.time(hour=19, minute=0, tzinfo=ISRAEL_TZ),
         days=(6,),  # Sunday
     )
 

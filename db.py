@@ -1,6 +1,16 @@
 import sqlite3
-from datetime import datetime, timedelta
-from config import DB_PATH
+from datetime import datetime, timedelta, timezone
+from config import DB_PATH, ISRAEL_TZ
+
+
+def _now_il() -> datetime:
+    """Current time in Israel timezone."""
+    return datetime.now(tz=ISRAEL_TZ)
+
+
+def _utc_str(dt: datetime) -> str:
+    """Convert timezone-aware datetime to UTC string for SQLite comparison."""
+    return dt.astimezone(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
 
 
 def get_connection() -> sqlite3.Connection:
@@ -56,13 +66,12 @@ def add_expense(
 
 
 def get_monthly_total(category: str) -> float:
-    now = datetime.now()
-    start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start = _now_il().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     conn = get_connection()
     row = conn.execute(
         "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses "
         "WHERE category = ? AND created_at >= ?",
-        (category, start.isoformat()),
+        (category, _utc_str(start)),
     ).fetchone()
     conn.close()
     return row["total"]
@@ -95,42 +104,41 @@ def get_all_budgets() -> list[dict]:
     return [dict(r) for r in rows]
 
 
-def get_expenses_since(since: datetime) -> list[dict]:
+def get_expenses_since(since: str) -> list[dict]:
     conn = get_connection()
     rows = conn.execute(
         "SELECT user_id, amount, category, description, source, created_at "
         "FROM expenses WHERE created_at >= ? ORDER BY created_at",
-        (since.isoformat(),),
+        (since,),
     ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 
 
 def get_week_expenses() -> list[dict]:
-    since = datetime.now() - timedelta(days=7)
-    return get_expenses_since(since)
+    since = _now_il() - timedelta(days=7)
+    return get_expenses_since(_utc_str(since))
 
 
 def get_month_expenses() -> list[dict]:
-    now = datetime.now()
-    since = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-    return get_expenses_since(since)
+    since = _now_il().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    return get_expenses_since(_utc_str(since))
 
 
 def get_last_n_days_expenses(days: int = 90) -> list[dict]:
-    since = datetime.now() - timedelta(days=days)
-    return get_expenses_since(since)
+    since = _now_il() - timedelta(days=days)
+    return get_expenses_since(_utc_str(since))
 
 
 def get_previous_week_total() -> float:
-    now = datetime.now()
+    now = _now_il()
     end = now - timedelta(days=7)
     start = end - timedelta(days=7)
     conn = get_connection()
     row = conn.execute(
         "SELECT COALESCE(SUM(amount), 0) AS total FROM expenses "
         "WHERE created_at >= ? AND created_at < ?",
-        (start.isoformat(), end.isoformat()),
+        (_utc_str(start), _utc_str(end)),
     ).fetchone()
     conn.close()
     return row["total"]
